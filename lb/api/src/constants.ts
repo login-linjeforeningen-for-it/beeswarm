@@ -2,9 +2,8 @@ import dotenv from 'dotenv'
 
 dotenv.config({ path: '../.env' })
 
-const requiredEnvironmentVariables = [
-    'DB_PASSWORD',
-    'DB_HOST',
+const requiredEnvironmentVariables: string[] = [
+    
 ]
 
 const missingVariables = requiredEnvironmentVariables.filter(
@@ -26,14 +25,6 @@ const env = Object.fromEntries(
 
 const config = {
     PORT: env.API_PORT,
-    DB_PORT: env.DB_PORT,
-    DB_MAX_CONN: env.DB_MAX_CONN,
-    DB_IDLE_TIMEOUT_MS: env.DB_IDLE_TIMEOUT_MS,
-    DB_TIMEOUT_MS: env.DB_TIMEOUT_MS,
-    DB: env.DB,
-    DB_HOST: env.DB_HOST,
-    DB_USER: env.DB_USER,
-    DB_PASSWORD: env.DB_PASSWORD,
     CACHE_TTL: 30000
 }
 
