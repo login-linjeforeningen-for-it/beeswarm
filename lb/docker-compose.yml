@@ -20,6 +20,6 @@ services:
     ports:
       - "8601:8080"
     restart: always
-    env_file: .env
+    # env_file: .env
     mem_limit: 1g
     cpus: "2.0"
