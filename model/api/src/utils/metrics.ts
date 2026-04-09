@@ -2,14 +2,14 @@ import os from "os"
 import si from "systeminformation"
 import getGpuUsage from './gpu/mac.ts'
 
-export default async function metrics(): Promise<Client> {
+export default async function metrics(): Promise<GPT_Client> {
     const name = os.hostname()
 
     // RAM info
     const totalMem = os.totalmem()
     const freeMem = os.freemem()
     const usedMem = totalMem - freeMem
-    const ram: RAM[] = [
+    const ram: GPT_RAM[] = [
         {
             name: "System RAM",
             load: usedMem / totalMem,
@@ -19,13 +19,13 @@ export default async function metrics(): Promise<Client> {
     // CPU info
     const cpuInfo = await si.cpu()
     const loadInfo = await si.currentLoad()
-    const cpu: CPU[] = loadInfo.cpus.map((core, index) => ({
+    const cpu: GPT_CPU[] = loadInfo.cpus.map((core, index) => ({
         name: `${cpuInfo.manufacturer} ${cpuInfo.brand} Core ${index + 1}`,
         load: core.load / 100,
     }))
 
     // GPU info
-    let gpu: GPU[]
+    let gpu: GPT_GPU[]
     const graphics = await si.graphics()
     const mac = process.platform === 'darwin'
     if (mac) {

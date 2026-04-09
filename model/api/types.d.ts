@@ -1,23 +1,23 @@
 type SQLParamType = (string | number | null | boolean | string[] | Date | Buffer)[]
 
-type Client = {
+type GPT_Client = {
     name: string
-    ram: RAM[]
-    cpu: CPU[]
-    gpu: GPU[]
+    ram: GPT_RAM[]
+    cpu: GPT_CPU[]
+    gpu: GPT_GPU[]
 }
 
-type RAM = {
-    name: string
-    load: number
-}
-
-type CPU = {
+type GPT_RAM = {
     name: string
     load: number
 }
 
-type GPU = {
+type GPT_CPU = {
+    name: string
+    load: number
+}
+
+type GPT_GPU = {
     name: string
     load: number
 }

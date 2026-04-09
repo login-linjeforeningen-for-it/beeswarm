@@ -40,9 +40,8 @@ export default function getGpuUsage(): Promise<GpuMetrics> {
                         if (match) {
                             hwActiveResidency = parseFloat(match[0]) / 100
 
-                            // breakdown by MHz
+                            // Breakdown by MHz
                             const freqParts = trimmed.split('(')[1].split(')')[0].split(/\s+/);
-                            // Example: "389 MHz: 9.3% 486 MHz: 0% 648 MHz: 0% ..."
                             for (let i = 0; i < freqParts.length; i += 2) {
                                 const freq = freqParts[i].replace('MHz:', '')
                                 const percent = parseFloat(freqParts[i + 1].replace('%', '')) / 100
