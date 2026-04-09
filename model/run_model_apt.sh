@@ -6,6 +6,26 @@ LLAMA_DIR="$CURRENT_DIR/llama.cpp"
 LLAMA_BUILD_DIR="$LLAMA_DIR/build"
 MODEL_DIR="$CURRENT_DIR/models/mistral"
 MODEL_PATH="$MODEL_DIR/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf"
+MODEL_API_ENTRY="$CURRENT_DIR/api/src/index.ts"
+MODEL_PORT=8081
+
+kill_stale_processes() {
+    if command -v pgrep >/dev/null 2>&1; then
+        for pid in $(pgrep -f "$MODEL_API_ENTRY" 2>/dev/null); do
+            if [ "$pid" != "$$" ]; then
+                kill "$pid" 2>/dev/null || true
+            fi
+        done
+    fi
+
+    if command -v lsof >/dev/null 2>&1; then
+        for pid in $(lsof -ti tcp:"$MODEL_PORT" 2>/dev/null); do
+            if [ "$pid" != "$$" ]; then
+                kill "$pid" 2>/dev/null || true
+            fi
+        done
+    fi
+}
 
 # --- Install dependencies ---
 sudo apt update
@@ -51,6 +71,8 @@ else
     echo "Model already downloaded"
 fi
 
+kill_stale_processes
+
 # --- Run llama-server ---
 cd api || exit
 npm i
@@ -65,7 +87,7 @@ pwd
 
 "$LLAMA_SERVER_BIN" \
     -m "$MODEL_PATH" \
-    --port 8081 \
+    --port "$MODEL_PORT" \
     --ctx-size 5000 \
     -t "$(nproc)" \
     -ngl 33

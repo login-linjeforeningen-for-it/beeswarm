@@ -11,7 +11,7 @@ type GpuMetrics = {
 
 export default function getGpuUsage(): Promise<GpuMetrics> {
     return new Promise((resolve, reject) => {
-        exec('sudo powermetrics --samplers gpu_power -i500 -n1', (err, stdout, stderr) => {
+        exec('sudo -n powermetrics --samplers gpu_power -i500 -n1', (err, stdout, stderr) => {
             if (err) {
                 return reject(err)
             }

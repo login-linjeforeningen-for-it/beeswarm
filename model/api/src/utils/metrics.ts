@@ -30,12 +30,18 @@ export default async function metrics(): Promise<GPT_Client> {
     const graphics = await si.graphics()
     const mac = process.platform === 'darwin'
     if (mac) {
-        const gpuMetrics = await getGpuUsage()
+        let gpuMetrics: Awaited<ReturnType<typeof getGpuUsage>> | null = null
+        try {
+            gpuMetrics = await getGpuUsage()
+        } catch (error) {
+            console.warn('Falling back to zeroed GPU metrics:', error)
+        }
+
         gpu = graphics.controllers.map((g) => ({
             name: g.model,
-            load: gpuMetrics.hwActiveResidency,
+            load: gpuMetrics?.hwActiveResidency || 0,
             cores: g.cores,
-            metrics: gpuMetrics,
+            metrics: gpuMetrics || undefined,
         }))
     } else {
         gpu = graphics.controllers.map((g) => ({

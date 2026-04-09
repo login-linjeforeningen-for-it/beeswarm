@@ -202,6 +202,7 @@ async function parseChatStream(
                 const timings = payload.timings
                 if (timings) {
                     updateModelState({
+                        status: 'generating',
                         promptTokens: timings.prompt_n || getModelState().promptTokens,
                         generatedTokens: timings.predicted_n || getModelState().generatedTokens,
                         contextTokens: (timings.cache_n || 0) + (timings.prompt_n || 0) + (timings.predicted_n || 0),
@@ -210,11 +211,15 @@ async function parseChatStream(
                     })
                 } else if (delta) {
                     const generatedTokens = getModelState().generatedTokens + 1
+                    const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 0.001)
                     updateModelState({
+                        status: 'generating',
                         generatedTokens,
                         currentTokens: getModelState().promptTokens + generatedTokens,
                         contextTokens: getModelState().promptTokens + generatedTokens,
-                        tps: generatedTokens / Math.max((Date.now() - startedAt) / 1000, 0.001),
+                        tps: generatedTokens > 1
+                            ? generatedTokens / elapsedSeconds
+                            : getModelState().tps,
                     })
                 }
 
