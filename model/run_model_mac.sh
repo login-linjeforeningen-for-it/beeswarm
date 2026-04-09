@@ -1,6 +1,11 @@
 #!/bin/sh
+set -e
 
 CURRENT_DIR=$(pwd)
+LLAMA_DIR="$CURRENT_DIR/llama.cpp"
+LLAMA_BUILD_DIR="$LLAMA_DIR/build"
+MODEL_DIR="$CURRENT_DIR/models/mistral"
+MODEL_PATH="$MODEL_DIR/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf"
 
 # Install cmake if not installed
 if ! command -v cmake &> /dev/null; then
@@ -17,23 +22,36 @@ if ! command -v hf &> /dev/null; then
     brew install huggingface-cli
 fi
 
-if [ ! -d ./llama.cpp ]; then
-    git clone https://github.com/ggml-org/llama.cpp.git
+if [ ! -d "$LLAMA_DIR" ] || [ ! -f "$LLAMA_DIR/CMakeLists.txt" ]; then
+    rm -rf "$LLAMA_DIR"
+    git clone https://github.com/ggml-org/llama.cpp.git "$LLAMA_DIR"
 fi
 
-if [ ! -f ./llama.cpp/build/bin/llama ]; then
-    cd ./llama.cpp
-    cmake -DGGML_METAL=ON -DCMAKE_CXX_STANDARD=17
-    cmake --build . --config Release
-    cd ..
+mkdir -p "$LLAMA_BUILD_DIR"
+
+if [ ! -f "$LLAMA_BUILD_DIR/bin/llama-server" ] && [ ! -f "$LLAMA_DIR/bin/llama-server" ]; then
+    cmake -S "$LLAMA_DIR" -B "$LLAMA_BUILD_DIR" -DGGML_METAL=ON -DCMAKE_CXX_STANDARD=17
+    cmake --build "$LLAMA_BUILD_DIR" --config Release -j"$(sysctl -n hw.ncpu)"
 else
     echo "llama.cpp already built"
 fi
 
-if [ ! -f ./llama.cpp/build/models/mistral/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf ]; then
+LLAMA_SERVER_BIN="$LLAMA_BUILD_DIR/bin/llama-server"
+if [ ! -x "$LLAMA_SERVER_BIN" ] && [ -x "$LLAMA_DIR/bin/llama-server" ]; then
+    LLAMA_SERVER_BIN="$LLAMA_DIR/bin/llama-server"
+fi
+
+if [ ! -x "$LLAMA_SERVER_BIN" ]; then
+    echo "Failed to find llama-server after build."
+    exit 1
+fi
+
+mkdir -p "$MODEL_DIR"
+
+if [ ! -f "$MODEL_PATH" ]; then
     hf download bartowski/Mistral-7B-Instruct-v0.3-GGUF \
        --include "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf" \
-       --local-dir ./models/mistral
+       --local-dir "$MODEL_DIR"
 else
     echo "Model already downloaded"
 fi
@@ -43,15 +61,15 @@ npm i
 node src/index.ts &
 NODE_PID=$!
 
+trap "echo 'Stopping server...'; kill $NODE_PID 2>/dev/null" EXIT
+
 echo "node pid $NODE_PID"
 
 pwd
 
-./../llama.cpp/bin/llama-server \
-    -m "$CURRENT_DIR/models/mistral/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf" \
+"$LLAMA_SERVER_BIN" \
+    -m "$MODEL_PATH" \
     --port 8081 \
     --ctx-size 5000 \
-    -t 100 \
+    -t "$(sysctl -n hw.ncpu)" \
     -ngl 33
-
-trap "echo 'Stopping server...'; kill $NODE_PID 2>/dev/null" EXIT
