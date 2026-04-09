@@ -1,6 +1,7 @@
 import os from "os"
 import si from "systeminformation"
 import getGpuUsage from './gpu/mac.ts'
+import { getModelState } from './modelState.ts'
 
 export default async function metrics(): Promise<GPT_Client> {
     const name = os.hostname()
@@ -43,5 +44,5 @@ export default async function metrics(): Promise<GPT_Client> {
         }))
     }
 
-    return { name, ram, cpu, gpu }
+    return { name, ram, cpu, gpu, model: getModelState() }
 }
