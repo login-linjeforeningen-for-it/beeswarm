@@ -9,8 +9,49 @@ MODEL_PATH="$MODEL_DIR/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf"
 MODEL_API_ENTRY="$CURRENT_DIR/api/src/index.ts"
 MODEL_PORT=8081
 
+download_model() {
+    if command -v hf >/dev/null 2>&1; then
+        hf download bartowski/Mistral-7B-Instruct-v0.3-GGUF \
+            --include "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf" \
+            --local-dir "$MODEL_DIR"
+        return
+    fi
+
+    huggingface-cli download bartowski/Mistral-7B-Instruct-v0.3-GGUF \
+        --include "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf" \
+        --local-dir "$MODEL_DIR"
+}
+
+binary_matches_host_arch() {
+    BINARY_PATH="$1"
+
+    if [ ! -x "$BINARY_PATH" ] || ! command -v file >/dev/null 2>&1; then
+        return 1
+    fi
+
+    BINARY_INFO=$(file "$BINARY_PATH" 2>/dev/null || true)
+
+    case "$(uname -m)" in
+        x86_64)
+            echo "$BINARY_INFO" | grep -q "x86-64"
+            ;;
+        aarch64 | arm64)
+            echo "$BINARY_INFO" | grep -q "ARM aarch64"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 kill_stale_processes() {
     if command -v pgrep >/dev/null 2>&1; then
+        for pid in $(pgrep -f "node src/index.ts" 2>/dev/null); do
+            if [ "$pid" != "$$" ] && [ -L "/proc/$pid/cwd" ] && [ "$(readlink "/proc/$pid/cwd")" = "$CURRENT_DIR/api" ]; then
+                kill "$pid" 2>/dev/null || true
+            fi
+        done
+
         for pid in $(pgrep -f "$MODEL_API_ENTRY" 2>/dev/null); do
             if [ "$pid" != "$$" ]; then
                 kill "$pid" 2>/dev/null || true
@@ -43,8 +84,15 @@ fi
 # --- Build llama.cpp ---
 mkdir -p "$LLAMA_BUILD_DIR"
 
-if [ ! -f "$LLAMA_BUILD_DIR/bin/llama-server" ] && [ ! -f "$LLAMA_DIR/bin/llama-server" ]; then
-    cmake -S "$LLAMA_DIR" -B "$LLAMA_BUILD_DIR" -DGGML_CUDA=OFF
+LLAMA_SERVER_BIN="$LLAMA_BUILD_DIR/bin/llama-server"
+if [ ! -x "$LLAMA_SERVER_BIN" ] && [ -x "$LLAMA_DIR/bin/llama-server" ]; then
+    LLAMA_SERVER_BIN="$LLAMA_DIR/bin/llama-server"
+fi
+
+if ! binary_matches_host_arch "$LLAMA_SERVER_BIN"; then
+    rm -rf "$LLAMA_BUILD_DIR"
+    mkdir -p "$LLAMA_BUILD_DIR"
+    cmake -S "$LLAMA_DIR" -B "$LLAMA_BUILD_DIR" -DGGML_CUDA=OFF -DLLAMA_CURL=OFF
     cmake --build "$LLAMA_BUILD_DIR" --config Release -j"$(nproc)"
 else
     echo "llama.cpp already built"
@@ -64,9 +112,7 @@ fi
 mkdir -p "$MODEL_DIR"
 
 if [ ! -f "$MODEL_PATH" ]; then
-    huggingface-cli download bartowski/Mistral-7B-Instruct-v0.3-GGUF \
-       --include "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf" \
-       --local-dir "$MODEL_DIR"
+    download_model
 else
     echo "Model already downloaded"
 fi
