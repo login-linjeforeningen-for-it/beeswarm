@@ -1,7 +1,7 @@
 import WebSocket from 'ws'
 import sendMetrics from '#utils/sendMetrics.ts'
 import config from '#constants'
-import { promptModel } from '#utils/modelApi.ts'
+import { promptModel, syncModelRuntimeMetrics } from '#utils/modelApi.ts'
 
 if (!config.ws_api) {
     console.error('Missing WS API')
@@ -33,22 +33,35 @@ function retryConnection() {
 }
 
 async function handleSocketMessage(rawMessage: WebSocket.RawData) {
+    let request: GPT_PromptRequest | null = null
+
     try {
         const msg = JSON.parse(rawMessage.toString()) as { type?: string }
-
-        if (msg.type !== 'join' && msg.type !== 'update') {
-            console.log('Received:', msg)
-        }
 
         if (msg.type !== 'prompt_request') {
             return
         }
 
+        request = msg as GPT_PromptRequest
+        console.log('Received prompt request:', {
+            conversationId: request.conversationId,
+            clientName: request.clientName || null,
+            maxTokens: request.maxTokens,
+            messages: request.messages.length,
+        })
+
+        if (prompting) {
+            const runtime = await syncModelRuntimeMetrics()
+            if (runtime.status !== 'preparing' && runtime.status !== 'generating') {
+                prompting = false
+            }
+        }
+
         if (prompting) {
             socket?.send(JSON.stringify({
                 type: 'prompt_error',
-                conversationId: (msg as GPT_PromptRequest).conversationId,
-                clientName: (msg as GPT_PromptRequest).clientName || null,
+                conversationId: request.conversationId,
+                clientName: request.clientName || null,
                 error: 'Model is already processing another prompt.',
                 timestamp: new Date().toISOString(),
             }))
@@ -56,12 +69,25 @@ async function handleSocketMessage(rawMessage: WebSocket.RawData) {
         }
 
         prompting = true
-        await promptModel(msg as GPT_PromptRequest, (event) => {
+        await promptModel(request, (event) => {
             if (socket?.readyState === WebSocket.OPEN) {
                 socket.send(event)
             }
         })
     } catch (err) {
+        if (request && socket?.readyState === WebSocket.OPEN) {
+            const error = err instanceof Error ? err.message : 'Unknown prompt error'
+            socket.send(JSON.stringify({
+                type: 'prompt_error',
+                conversationId: request.conversationId,
+                clientName: request.clientName || null,
+                error,
+                timestamp: new Date().toISOString(),
+            }))
+            console.error('Prompt handling failed:', err)
+            return
+        }
+
         console.error('Invalid message from server:', err)
     } finally {
         prompting = false

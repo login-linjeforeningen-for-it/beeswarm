@@ -11,20 +11,6 @@ services:
       - ./models:/usr/bin/app/models 
     restart: always
 
-  ui:
-    image: beeswarm
-    build:
-      context: ./api
-      dockerfile: ./Dockerfile
-    container_name: beeswarm_model_ui
-    restart: always
-    ports:
-      - "8082:8080"
-    environment:
-      API: ${API:-beeswarm}
-    mem_limit: 1g
-    cpus: "2.0"
-
   api:
     image: beeswarm_api
     build:
@@ -32,10 +18,13 @@ services:
       dockerfile: ./Dockerfile
     container_name: beeswarm_model_api
     restart: always
+    depends_on:
+      - llama_server
     ports:
       - "8083:8080"
     environment:
       API: ${API:-beeswarm}
+      MODEL_API: http://llama_server:8080
     mem_limit: 1g
     cpus: "2.0"
 

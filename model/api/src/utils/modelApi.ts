@@ -7,6 +7,21 @@ let contextCache = {
     fetchedAt: 0,
     total: 0,
 }
+let lastSlotWarningAt = 0
+
+function isExpectedStartupResponse(error: unknown) {
+    return error instanceof Error && error.message === 'Failed to fetch slots: 503'
+}
+
+function logSlotWarning(error: unknown) {
+    const now = Date.now()
+    if (now - lastSlotWarningAt < 30000) {
+        return
+    }
+
+    lastSlotWarningAt = now
+    console.warn('Unable to fetch model slot metrics:', error)
+}
 
 function modelUrl(path: string) {
     return `${config.model_api}${path}`
@@ -38,7 +53,9 @@ export async function fetchSlotMetrics() {
 
         return activeSlot
     } catch (error) {
-        console.warn('Unable to fetch model slot metrics:', error)
+        if (!isExpectedStartupResponse(error)) {
+            logSlotWarning(error)
+        }
         return null
     }
 }
