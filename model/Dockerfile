@@ -20,4 +20,4 @@ RUN rm -rf build \
 # Starts the container
 WORKDIR /usr/bin/app
 EXPOSE 8080
-ENTRYPOINT ["./llama.cpp/build/bin/llama-server", "-m", "./models/mistral/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf", "--port", "8080", "--ctx-size", "8192", "-ngl", "33", "--host", "0.0.0.0"]
+ENTRYPOINT ["./llama.cpp/build/bin/llama-server", "-m", "./models/mistral/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf", "--port", "8080", "--ctx-size", "100000", "-ngl", "33", "--host", "0.0.0.0"]

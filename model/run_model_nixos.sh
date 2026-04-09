@@ -88,6 +88,6 @@ pwd
 "$LLAMA_SERVER_BIN" \
     -m "$MODEL_PATH" \
     --port "$MODEL_PORT" \
-    --ctx-size 5000 \
+    --ctx-size 100000 \
     -t "$(nproc)" \
     -ngl 33
