@@ -12,12 +12,3 @@ The models folder contain a modules folder which currently only supports access 
 This is not implemented yet but only implemented as a theoretical utility. It should be fully implemented.
 
 It can be started using `npm i` followed by `npm start`. Currently it only supports a single query hard coded in the `internet.ts`. This should be modified to allow for any query via the api, and the chatbot should be able to access this endpoint somehow.
-
-### Load balancer
-Run instructions
-1. `cd lb`.
-2. If you want to run locally for testing, skip to step 4, otherwise continue with step 3.
-3. `docker compose up --build`.
-4. If you want to test the frontend run `cd ui` and `npm run dev` or for the api `cd api` and `npm start`.
-
-The API is used directly by the script and should not be started manually.
