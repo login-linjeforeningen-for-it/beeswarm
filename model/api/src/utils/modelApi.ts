@@ -1,7 +1,7 @@
 import config from '#constants'
 import { getModelState, updateModelState } from '#utils/modelState.ts'
 
-const DEFAULT_MAX_TOKENS = 512
+const DEFAULT_MAX_TOKENS = 10000
 
 let contextCache = {
     fetchedAt: 0,
