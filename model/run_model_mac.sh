@@ -92,6 +92,6 @@ pwd
 "$LLAMA_SERVER_BIN" \
     -m "$MODEL_PATH" \
     --port "$MODEL_PORT" \
-    --ctx-size 100000 \
+    --ctx-size 25000 \
     -t "$(sysctl -n hw.ncpu)" \
     -ngl 33
