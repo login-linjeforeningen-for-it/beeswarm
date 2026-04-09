@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+# --- Paths ---
 CURRENT_DIR=$(pwd)
 LLAMA_DIR="$CURRENT_DIR/llama.cpp"
 LLAMA_BUILD_DIR="$LLAMA_DIR/build"
@@ -8,7 +9,9 @@ MODEL_DIR="$CURRENT_DIR/models/mistral"
 MODEL_PATH="$MODEL_DIR/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf"
 MODEL_API_ENTRY="$CURRENT_DIR/api/src/index.ts"
 MODEL_PORT=8081
+VENV_DIR="$CURRENT_DIR/venv"
 
+# --- Kill stale processes ---
 kill_stale_processes() {
     if command -v pgrep >/dev/null 2>&1; then
         for pid in $(pgrep -f "$MODEL_API_ENTRY" 2>/dev/null); do
@@ -27,12 +30,16 @@ kill_stale_processes() {
     fi
 }
 
-# --- Install dependencies ---
+# --- System dependencies ---
 sudo apt update
-sudo apt install -y git cmake wget python3-pip
+sudo apt install -y git cmake wget python3-pip nodejs npm build-essential
 
-# Install huggingface-cli via pip
-pip install -U huggingface_hub
+# --- Virtual environment setup ---
+if [ ! -d "$VENV_DIR" ]; then
+    python3 -m venv "$VENV_DIR"
+fi
+source "$VENV_DIR/bin/activate"
+pip install --upgrade pip huggingface_hub
 
 # --- Clone llama.cpp ---
 if [ ! -d "$LLAMA_DIR" ] || [ ! -f "$LLAMA_DIR/CMakeLists.txt" ]; then
@@ -73,18 +80,17 @@ fi
 
 kill_stale_processes
 
-# --- Run llama-server ---
+# --- Run Node API ---
 cd api || exit
-npm i
+npm install
 node src/index.ts &
 NODE_PID=$!
 
 trap "echo 'Stopping server...'; kill $NODE_PID 2>/dev/null" EXIT
 
-echo "node pid $NODE_PID"
+echo "Node.js API running with pid $NODE_PID"
 
-pwd
-
+# --- Run llama-server ---
 "$LLAMA_SERVER_BIN" \
     -m "$MODEL_PATH" \
     --port "$MODEL_PORT" \
