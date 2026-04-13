@@ -105,7 +105,7 @@ function connect() {
 
     const socketUrls = getSocketUrls(wsApi)
 
-    const attemptConnection = (index: number) => {
+    function attemptConnection(index: number) {
         const targetUrl = socketUrls[index]
         if (!targetUrl) {
             connecting = false
@@ -120,15 +120,18 @@ function connect() {
         let opened = false
         let retryScheduled = false
 
-        const scheduleRetry = () => {
-            if (retryScheduled) return
+        function scheduleRetry() {
+            if (retryScheduled) {
+                return
+            }
+
             retryScheduled = true
             connecting = false
             socket = null
             retryConnection()
         }
 
-        const tryNextUrl = () => {
+        function tryNextUrl() {
             if (index + 1 >= socketUrls.length) {
                 scheduleRetry()
                 return
@@ -156,7 +159,7 @@ function connect() {
         })
 
         candidate.on('message', (rawMessage) => {
-            void handleSocketMessage(rawMessage)
+            handleSocketMessage(rawMessage)
         })
 
         candidate.on('unexpected-response', (_, response) => {
