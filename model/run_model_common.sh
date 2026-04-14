@@ -159,12 +159,10 @@ select_backend() {
   if [ "$OS_NAME" = "Darwin" ]; then
     BACKEND="metal"
     CMAKE_BACKEND_FLAGS+=(-DGGML_METAL=ON)
-    SERVER_EXTRA_ARGS+=(--flash-attn auto)
     N_GPU_LAYERS=999
   elif [ "$NVIDIA_GPU_COUNT" -ge 1 ]; then
     BACKEND="cuda"
     CMAKE_BACKEND_FLAGS+=(-DGGML_CUDA=ON)
-    SERVER_EXTRA_ARGS+=(--flash-attn auto)
     N_GPU_LAYERS=999
   else
     BACKEND="cpu"

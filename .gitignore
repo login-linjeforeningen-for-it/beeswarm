@@ -3,3 +3,4 @@ node_modules
 tmp
 model/models/*
 model/llama.cpp/bin/
+model/llama.log
